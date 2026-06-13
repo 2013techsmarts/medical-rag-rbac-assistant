@@ -66,7 +66,7 @@ graph TD
 
 ---
 
-## 🔄 The Implementation Process (Step-by-Step)
+## The Implementation Process (Step-by-Step)
 
 Here is the entire development process of what we built and integrated:
 
