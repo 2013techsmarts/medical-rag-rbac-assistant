@@ -1,0 +1,57 @@
+[project]
+name = "medibot"
+version = "0.1.0"
+description = "Advanced Healthcare RAG Assistant"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    # FastAPI
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.35.0",
+    # Config
+    "pydantic>=2.11.0",
+    "pydantic-settings>=2.10.0",
+    "python-dotenv>=1.1.0",
+    # LangChain
+    "langchain>=0.3.27",
+    "langchain-core>=0.3.75",
+    "langchain-community>=0.3.27",
+    # Groq
+    "langchain-groq>=0.3.7",
+    "groq>=0.31.0",
+    # Vector Database
+    "qdrant-client>=1.15.1",
+    # Embeddings & Retrieval
+    "sentence-transformers>=5.1.0",
+    "fastembed>=0.7.1",
+    # Document Processing
+    "docling>=2.50.0",
+    # Database
+    "sqlalchemy>=2.0.43",
+    # Security
+    "python-jose[cryptography]>=3.5.0",
+    "passlib[bcrypt]>=1.7.4",
+    # Utilities
+    "httpx>=0.28.1",
+    "orjson>=3.11.0",
+    "python-multipart>=0.0.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.10",
+    "mypy>=1.17.1",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
