@@ -1,56 +1,35 @@
-import re
+from pydantic import BaseModel, Field
 
 from medibot.llm.provider import get_llm
 from medibot.rag.prompts.sql_prompt import TEXT_TO_SQL_PROMPT
 
 
-def clean_sql(raw_sql: str) -> str:
-    """
-    Clean the SQL string returned by the LLM.
-    Strips markdown code fences (```sql ... ```) and leading/trailing whitespace.
-    
-    Args:
-        raw_sql: The raw string response from LLM.
-        
-    Returns:
-        A clean SQL query string.
-    """
-    # Regex to match ```sql ... ``` or ``` ... ``` code blocks
-    match = re.search(r"```(?:sql)?\s*(.*?)\s*```", raw_sql, re.DOTALL | re.IGNORECASE)
-    if match:
-        cleaned = match.group(1)
-    else:
-        cleaned = raw_sql
-
-    cleaned = cleaned.strip()
-
-    # Strip wrapping quotes if the model wrapped the query in single/double quotes or backticks
-    if (
-        (cleaned.startswith("'") and cleaned.endswith("'"))
-        or (cleaned.startswith('"') and cleaned.endswith('"'))
-        or (cleaned.startswith("`") and cleaned.endswith("`"))
-    ):
-        cleaned = cleaned[1:-1].strip()
-
-    # Remove trailing semicolon if present
-    if cleaned.endswith(";"):
-        cleaned = cleaned[:-1].strip()
-
-    return cleaned
+class SqlGeneration(BaseModel):
+    """Schema for validating and parsing the generated SQLite query."""
+    sql_query: str = Field(
+        description="A syntactically correct SQLite SELECT query based on the table schemas."
+    )
 
 
 def generate_sql(question: str) -> str:
     """
     Generate an SQL query using ChatGroq for a given question.
+    Uses LangChain's native structured output bindings to guarantee a clean SQL query.
     
     Args:
         question: User's natural language question.
         
     Returns:
-        A cleaned SQLite query string.
+        A validated SQLite query string.
     """
     llm = get_llm()
+    
+    # Bind Pydantic schema to ChatGroq
+    structured_llm = llm.with_structured_output(SqlGeneration)
+    
+    # Format and invoke
     prompt = TEXT_TO_SQL_PROMPT.format_prompt(question=question)
-    response = llm.invoke(prompt)
-    raw_sql = str(response.content)
-    return clean_sql(raw_sql)
+    result = structured_llm.invoke(prompt)
+    
+    # Extract query and strip extra whitespace
+    return result.sql_query.strip()
