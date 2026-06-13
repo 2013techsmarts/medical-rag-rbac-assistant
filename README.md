@@ -4,7 +4,7 @@ MediBot is an intelligent, secure assistant that combines **Hybrid Document RAG*
 
 ---
 
-## 🛠️ Tech Stack & Libraries
+## Tech Stack & Libraries
 
 ### Backend
 * **Python (3.10+)**: Core programming language.
@@ -25,7 +25,7 @@ MediBot is an intelligent, secure assistant that combines **Hybrid Document RAG*
 
 ---
 
-## 🧠 AI Models & Networks Used
+## AI Models & Networks Used
 
 1. **Dense Embeddings**: `BAAI/bge-large-en-v1.5` (1024 dimensions, Cosine distance) — lazy-loaded via `fastembed.TextEmbedding` to map semantic concepts.
 2. **Sparse Embeddings**: `Qdrant/bm25` — lazy-loaded via `fastembed.SparseTextEmbedding` to capture exact keyword occurrences.
@@ -34,7 +34,7 @@ MediBot is an intelligent, secure assistant that combines **Hybrid Document RAG*
 
 ---
 
-## 🗺️ Query Flow Architecture
+## Query Flow Architecture
 
 The diagram below illustrates the exact end-to-end query execution path, starting from user login and security filter building, through to the decoupled Hybrid RAG and SQL RAG processing chains:
 
@@ -234,7 +234,7 @@ uv run pytest tests/ -v
 
 ---
 
-## 🛠️ Tool & Library Substitutions
+## Tool & Library Substitutions
 
 To optimize performance, security, and runtime compatibility, we made the following substitutions during implementation:
 
