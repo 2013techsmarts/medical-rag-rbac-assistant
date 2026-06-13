@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends
+from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel, Field
 
 from medibot.api.dependencies import get_current_role
 from medibot.llm.provider import get_llm
@@ -10,30 +12,43 @@ from medibot.rag.sql import sql_rag_chain
 
 router = APIRouter()
 
-# Simple keyword classifier list to direct analytical questions to SQL RAG
-ANALYTIC_KEYWORDS = [
-    "how many",
-    "count",
-    "total",
-    "average",
-    "list all",
-    "escalated",
-    "approved",
-    "rejected",
-    "last month",
-    "fault code",
-    "ticket",
-    "claim",
-    "equipment",
-    "campus",
-    "sum of",
-]
+
+class RouteDecision(BaseModel):
+    """Schema for parsing the query routing decision."""
+    route: str = Field(
+        description="The target pipeline for the query, either 'sql_rag' or 'hybrid_rag'."
+    )
 
 
-def is_analytical_question(question: str) -> bool:
-    """Check if the user question has database/analytical intent."""
-    q = question.lower()
-    return any(keyword in q for keyword in ANALYTIC_KEYWORDS)
+def classify_query_route(question: str) -> str:
+    """
+    Classify the user question intent semantically using ChatGroq.
+    
+    Args:
+        question: User query string.
+        
+    Returns:
+        'sql_rag' or 'hybrid_rag'.
+    """
+    llm = get_llm()
+    router_llm = llm.with_structured_output(RouteDecision)
+    
+    prompt = PromptTemplate.from_template(
+        "Classify the question route.\n"
+        "Available Routes:\n"
+        "- sql_rag: Choose this for questions needing database counts, lists, averages, sums, statistics, ticket reports, or claim records.\n"
+        "- hybrid_rag: Choose this for questions asking about policies, standards, leave protocols, faqs, instructions, or procedures.\n\n"
+        "Question: {question}\n\n"
+        "Route:"
+    )
+    
+    try:
+        formatted = prompt.format_prompt(question=question)
+        result = router_llm.invoke(formatted)
+        return result.route.strip().lower()
+    except Exception:
+        # Secure fallback to document hybrid search in case of classification issues
+        return "hybrid_rag"
 
 
 @router.post("/chat", response_model=ChatResponse, tags=["chat"])
@@ -41,14 +56,18 @@ def chat(request: ChatRequest, current_role: str = Depends(get_current_role)):
     """
     RAG Chat Endpoint.
     
-    If the question is analytical (count, average, lists) AND the user's role is
+    If the question has analytical intent (resolved semantically) AND the user's role is
     'billing_executive' or 'admin', it routes to SQL RAG (Component 4).
     Otherwise, it routes to Hybrid RAG search and Cross-Encoder reranking.
     """
     question = request.question
 
-    # 1. Routing Decision
-    if (current_role in ["billing_executive", "admin"]) and is_analytical_question(question):
+    # 1. Routing Decision (Only query LLM router if user has database privileges)
+    route = "hybrid_rag"
+    if current_role in ["billing_executive", "admin"]:
+        route = classify_query_route(question)
+
+    if route == "sql_rag":
         # Route to SQL RAG
         result = sql_rag_chain(question)
         return ChatResponse(
